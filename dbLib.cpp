@@ -32,14 +32,14 @@ void loadNinjaDB(char* fName, L1List<NinjaInfo_t> &db) {
         
     if (inFile) {
         string line;
-        NinjaInfo_t busEntry;
+        NinjaInfo_t ninja;
         while (getline(inFile , line)) {
             // remove \r
             if (line[line.length() - 1] == '\r')
                 line.erase(line.length() - 1);
             if (line.length() > 0) {
-                if (parseNinjaInfo((char*)line.data(), busEntry))
-                    db.insertHead(busEntry);
+                if (parseNinjaInfo((char*)line.data(), ninja))
+                    db.insertHead(ninja);
             }
         }
         db.reverse();
@@ -48,7 +48,6 @@ void loadNinjaDB(char* fName, L1List<NinjaInfo_t> &db) {
     else {
         cout << "The file is not found!";
     }
-
 }
 
 bool parseNinjaInfo(char* pBuf, NinjaInfo_t& nInfo) {
@@ -58,24 +57,38 @@ bool parseNinjaInfo(char* pBuf, NinjaInfo_t& nInfo) {
     while (pBuf[j]) {
         if (pBuf[j] == ',') {
             switch (counter) {
-                case 0:
-                    strncpy(bInfo.id, pBuf + i, j - i);
-                    bInfo.id[j - i] = '\0';
+                case 2:
+                    strncpy(nInfo.id, pBuf + i, j - i);
+                    nInfo.id[j - i] = '\0';
+                    break;
+                case 1:
+                {
+                    int hh, mm, ss, dd, mth, yy;
+                    strncpy(subStr, pBuf + i, j - i);
+                    subStr[j - i] = '\0';
+                    struct tm when = {0};
+                    sscanf(subStr, "%d/%d/%d %d:%d:%d", &dd, &mth, & yy, &hh, &mm, &ss);
+                    when.tm_mday = dd;
+                    when.tm_mon = mth-1;
+                    when.tm_year = yy-1900;
+                    when.tm_hour = hh;
+                    when.tm_min = mm;
+                    when.tm_sec = ss;
+                    time_t converted;
+                    converted = mktime(&when);
+                    nInfo.timestamp=converted;
+                    cout<<nInfo.timestamp<<endl;
+                    break;
+                }
+                case 3:
+                    strncpy(subStr, pBuf + i, j - i);
+                    subStr[j - i] = '\0';
+                    nInfo.longitude = atof(subStr);// longitude
                     break;
                 case 4:
                     strncpy(subStr, pBuf + i, j - i);
                     subStr[j - i] = '\0';
-                    bInfo.timestamp = (__time64_t)atof(subStr);
-                    break;
-                case 5:
-                    strncpy(subStr, pBuf + i, j - i);
-                    subStr[j - i] = '\0';
-                    bInfo.longitude = atof(subStr);// longitude
-                    break;
-                case 6:
-                    strncpy(subStr, pBuf + i, j - i);
-                    subStr[j - i] = '\0';
-                    bInfo.latitude = atof(subStr);// latitude
+                    nInfo.latitude = atof(subStr);// latitude
                     break;
             }
             counter++;
