@@ -165,7 +165,7 @@ int L1List<T>::insert(int i,T &data){
         return -1;
     }
     else if(i=0){
-        insertHead(T &data);
+        insertHead(data);
         return 0;
     }
     else if(i>_size){
@@ -191,7 +191,7 @@ int L1List<T>::insert(int i,T &data){
 // return by address
 // return 1 if find
 template<class T>
-bool L1List<T>::find(int&index, T&data){
+bool L1List<T>::find(T &data,int&index){
     L1Item<T>*temp=_pHead;
     int i=0;
     while(temp!=NULL){
@@ -208,9 +208,9 @@ bool L1List<T>::find(int&index, T&data){
 ///get item at(i) in list
 //return data at i
 template<class T>
-T L1List<T>::at(int i){
+T& L1List<T>::at(int i){
     L1Item<T>*temp=_pHead;
-    for(int j=0;j<=i;j++){
+    for(int j=0;j<i;j++){
         temp=temp->pNext;
     }
     return temp->data;
@@ -219,7 +219,7 @@ T L1List<T>::at(int i){
 ///implement operator []
 //return data at[i];
 template<class T>
-T L1List<T>::operator[](int i){
+T& L1List<T>::operator[](int i){
     return at(i);
 }
 
