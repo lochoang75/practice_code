@@ -66,7 +66,24 @@ bool parseNinjaInfo(char* pBuf, NinjaInfo_t& nInfo) {
             switch (counter) {
                 case 2:
                     strncpy(nInfo.id, pBuf + i, j - i);
-                    nInfo.id[j - i] = '\0';
+                    if((j-i)==2){
+                        nInfo.id[2]=nInfo.id[0];
+                        nInfo.id[3]=nInfo.id[1];
+                        nInfo.id[0]='0';
+                        nInfo.id[1]='0';
+                        nInfo.id[j - i+2] = '\0';
+                    }
+                    else if((j-i)==3){
+                        nInfo.id[2]=nInfo.id[1];
+                        nInfo.id[3]=nInfo.id[2];
+                        nInfo.id[0]='0';
+                        nInfo.id[1]=nInfo.id[0];
+                        nInfo.id[j - i+1] = '\0';
+                    }
+                    else{
+                        nInfo.id[j - i] = '\0';
+                    }
+                    
                     break;
                 case 1:
                 {
