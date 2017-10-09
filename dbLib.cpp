@@ -33,13 +33,20 @@ void loadNinjaDB(char* fName, L1List<NinjaInfo_t> &db) {
     if (inFile) {
         string line;
         NinjaInfo_t ninja;
+        int i=0;
         while (getline(inFile , line)) {
-            // remove \r
-            if (line[line.length() - 1] == '\r')
-                line.erase(line.length() - 1);
-            if (line.length() > 0) {
-                if (parseNinjaInfo((char*)line.data(), ninja))
-                    db.insertHead(ninja);
+            if(i==0){
+                cin.clear();
+                i++;
+            }
+            else{
+                // remove \r
+                 if (line[line.length() - 1] == '\r')
+                    line.erase(line.length() - 1);
+                 if (line.length() > 0) {
+                    if (parseNinjaInfo((char*)line.data(), ninja))
+                             db.insertHead(ninja);
+            }
             }
         }
         db.reverse();
@@ -77,7 +84,6 @@ bool parseNinjaInfo(char* pBuf, NinjaInfo_t& nInfo) {
                     time_t converted;
                     converted = mktime(&when);
                     nInfo.timestamp=converted;
-                    cout<<nInfo.timestamp<<endl;
                     break;
                 }
                 case 3:

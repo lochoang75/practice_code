@@ -11,7 +11,6 @@
 
 #include "eventLib.h"
 
-
 /// NOTE: each event will be separated by spaces, or endline character
 void loadEvents(char* fName, L1List<ninjaEvent_t> &eList) {
 	 ifstream inFile(fName);
@@ -23,13 +22,12 @@ void loadEvents(char* fName, L1List<ninjaEvent_t> &eList) {
             if (line[line.length() - 1] == '\r')
                 line.erase(line.length() - 1);
             if (line == "") continue;
- 
             istringstream iss(line);
             while (iss) {
                 string sub;
                 iss >> sub;
                 if (sub.length()) {
-                    busEvent_t __e(sub);
+                    ninjaEvent_t __e(sub);
                     eList.insertHead(__e);
                 }
             }

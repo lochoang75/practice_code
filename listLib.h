@@ -43,15 +43,22 @@ class L1List {
 public:
     L1List() : _pHead(NULL), _size(0) {}
     ~L1List(){
-        L1Item<T>*p=new L1Item<T>();
+        L1Item<T>*p=_pHead;
         while(p!=NULL){
+            L1Item<T>*ptr=p->pNext;
             delete p;
-            p=p->pNext;
+            p=ptr;
         }
     };
 
     void    clean(){
-        ~L1List();
+         L1Item<T>*p=_pHead;
+        while(p!=NULL){
+            L1Item<T>*ptr=p->pNext;
+            delete p;
+			_size--;
+            p=ptr;
+        }
     };
     bool    isEmpty() {
         return _pHead == NULL;
@@ -82,11 +89,15 @@ public:
             p = p->pNext;
         }
     }
-    void    traverse(void (*op)(T&, void*), void* pParam) {
+    void    traverse(void (*op)(T&, void*,bool&), void* pParam,bool &flag) {
         L1Item<T>   *p = _pHead;
         while (p) {
-            op(p->data, pParam);
-            p = p->pNext;
+            if(flag==1)
+                break;
+            else{
+                op(p->data, pParam,flag);
+                p = p->pNext;
+            }
         }
     }
 };
@@ -225,23 +236,30 @@ T& L1List<T>::operator[](int i){
 
 ///Reverse the list
 template<class T>
-void L1List<T>::reverse(){
-    L1Item<T>*pLoc=_pHead->pNext;
-    L1Item<T>*R_head=new L1Item<T>();
-    L1Item<T>*pPre=_pHead;
-    R_head=pPre;
-    R_head->pNext=NULL;
-    pPre=pLoc;
-    pLoc=pLoc->pNext;
-    while(pLoc!=NULL){
-        pPre->pNext=R_head;
-        R_head=pPre;
-        pPre=pLoc;
-        pLoc=pLoc->pNext;
-    }
-    pPre->pNext=R_head;
-    R_head=pPre;
-    _pHead=R_head;
+void L1List<T>::reverse() {
+	L1Item<T>*pLoc = _pHead->pNext;
+	L1Item<T>*R_head = new L1Item<T>();
+	L1Item<T>*pPre = _pHead;
+	if (_size == 1) {
+		R_head = pPre;
+		R_head->pNext = NULL;
+                _pHead=R_head;
+	}
+	else {
+		R_head = pPre;
+		R_head->pNext = NULL;
+		pPre = pLoc;
+		pLoc = pLoc->pNext;
+		while (pLoc != NULL) {
+			pPre->pNext = R_head;
+			R_head = pPre;
+			pPre = pLoc;
+			pLoc = pLoc->pNext;
+		}
+		pPre->pNext = R_head;
+		R_head = pPre;
+		_pHead = R_head;
+	}
 }
 
 ///
