@@ -15,8 +15,12 @@ struct Temp{
     time_t sumTime;
  	double lat;
  	double lon;
+ 	double lat_2;
+ 	double lon_2;
  	double distance;
  	int count;
+ 	int count_2;
+ 	L1List<NinjaInfo_t> list;
     Temp(char*id){
     	strcpy(this->id,id);
     	time=0;
@@ -25,6 +29,20 @@ struct Temp{
     	count=0;
     	distance=0;
     	sumTime=0;
+    	lat_2=0;
+    	lon_2=0;
+    	count_2=0;
+    }
+    Temp(){
+    	time=0;
+    	lat=0;
+    	lon=0;
+    	count=0;
+    	distance=0;
+    	sumTime=0;
+    	lat_2=0;
+    	lon_2=0;
+    	count_2=0;
     }
 };
 //------------------------------------------------------------------
@@ -36,7 +54,8 @@ void print_event(ninjaEvent_t&data){
 }
 void Event0(){
     L1List<ninjaEvent_t> Event;
-    char*name="events.txt";
+    char* name=new char();
+    strcpy(name,"events.txt");
     loadEvents(name,Event);
     Event.traverse(&print_event);   
     cout<<"\n";
@@ -436,6 +455,187 @@ void Event12(L1List<NinjaInfo_t>&nList){
 	}
 	cout<<max_id<<endl;
 }
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+//Event 13: find ninja in trap
+//void function
+//check ninja have been trap
+void check_cur_list(NinjaInfo_t&data,void*ptr,bool&flag){
+	Temp*p=(Temp*)ptr;
+	if(data.id==p->id){
+		flag=1;
+	}
+	if(p->time<data.timestamp){
+		p->count++;
+	}
+}
+//convert char*to double
+void convert2double(string &buff,double &location){
+	istringstream ss(buff);
+	double temp=0;
+	ss>>temp;
+	if(location>0){
+		location+=temp/10000;
+	}
+	else{
+		location-=temp/10000;
+	}
+}
+//check that ninja can be in trap
+void check_inside_rectagle(NinjaInfo_t&data,void*ptr, bool&flag){
+	Temp*p=(Temp*)ptr;
+	Temp*p_local=new Temp(data.id);
+	bool check=0;
+	if(p->lat<p->lat_2){
+		if(p->lon<p->lon_2){
+			if((data.latitude>=p->lat&&data.latitude<=p->lat_2)&&(data.longitude>=p->lon&&data.longitude<=p->lon_2)){
+				(p->list).traverse(&check_cur_list,p_local,check);
+				if(check==0){
+					(p->list).insert(p_local->count,data);
+				}
+			}
+		}	
+		else{
+			if((data.latitude>=p->lat&&data.latitude<=p->lat_2)&&(data.longitude>=p->lon_2&&data.longitude<=p->lon)){
+				(p->list).traverse(&check_cur_list,p_local,check);
+				if(check==0){
+					(p->list).insert(p_local->count,data);
+				}
+
+			}
+		}
+	}
+	else{
+		if(p->lon<p->lon_2){
+			if((data.latitude>=p->lat_2&&data.latitude<=p->lat)&&(data.longitude>=p->lon&&data.longitude<=p->lon_2)){
+				(p->list).traverse(&check_cur_list,p_local,check);
+				if(check==0){
+					(p->list).insert(p_local->count,data);
+				}
+
+			}
+		}
+		else{
+			if((data.latitude>=p->lat_2&&data.latitude<=p->lat)&&(data.longitude>=p->lon_2&&data.longitude<=p->lon)){
+				(p->list).traverse(&check_cur_list,p_local,check);
+				if(check==0){
+					(p->list).insert(p_local->count,data);
+				}
+
+			}
+		}
+	}
+}
+//print ninja to console
+void print_ninja(NinjaInfo_t&data){
+	cout<<data.id<<" ";
+}
+void Event13(L1List<NinjaInfo_t> &nList,ninjaEvent_t&event){
+	double latA=(int)nList.at(0).latitude;
+	double lonA=(int)nList.at(0).longitude;
+	double latB=latA;
+	double lonB=lonA;
+	string buff={event.code[2],event.code[3],event.code[4],event.code[5],'\0'};
+	convert2double(buff,latA);
+	buff={event.code[6],event.code[7],event.code[8],event.code[9],'\0'};
+	convert2double(buff,lonA);
+	buff={event.code[10],event.code[11],event.code[12],event.code[13],'\0'};
+	convert2double(buff,latB);
+	buff={event.code[14],event.code[15],event.code[16],event.code[17],'\0'};
+	convert2double(buff,lonB);
+	Temp*ptr=new Temp();
+	ptr->lat=latA;
+	ptr->lon=lonA;
+	ptr->lat_2=latB;
+	ptr->lon_2=lonB;
+	bool flag=0;
+	nList.traverse(&check_inside_rectagle,ptr,flag);
+	if((ptr->list).getSize()==0){
+		cout<<"-1"<<endl;
+	}
+	else{
+		(ptr->list).traverse(&print_ninja);
+		cout<<endl;
+	}
+}
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//Event 14:ninja who be astray
+//void function
+void print_ninja_astray(char*&ninja){
+	cout<<ninja<<" ";
+}
+void add5array(char*&data,void*ptr,bool&flag){
+	string*p=(string*)ptr;
+	static int i=0;
+	p[i]=data;
+	i++;
+}
+void be_astray(NinjaInfo_t&ninja,void*ptr,bool&flag){
+	Temp*p_local=(Temp*)ptr;
+	if(p_local->count_2<(p_local->list).getSize()){
+		double distance=distanceEarth(ninja.latitude,ninja.longitude,p_local->lat,p_local->lon);
+		if(distance*1000<=5){
+			flag=1;
+		}
+		else{
+			p_local->count_2++;
+		}
+	}
+}
+void find_astray_ninja(NinjaInfo_t&data,void*ptr, bool&flag){
+	Temp*p=(Temp*)ptr;
+	if(!strcmp(p->id,data.id)&&p->count==0){
+		(p->list).insertHead(data);
+		(p->count)++;
+	}
+	else if(!strcmp(p->id,data.id)){
+		p->lat=data.latitude;
+		p->lon=data.longitude;
+		p->count_2=0;
+		if(distanceEarth(p->lat,p->lon,(p->list).at(0).latitude,(p->list).at(0).longitude)*1000>5){
+			(p->list).traverse(&be_astray,p,flag);
+		}
+		else{
+			(p->list).insertHead(data);
+		}
+	}
+}
+
+void Event14(L1List<NinjaInfo_t>&nList){
+	if (IDList.getSize()==0)
+	{
+		nList.traverse(&create_id_list);
+	}
+	string*ptr=new string[IDList.getSize()];
+	bool flag=0;
+	L1List<char*>lost_list;
+	char* p=new char[10];
+	IDList.traverse(&add5array,ptr,flag);
+	for(int i=0;i<IDList.getSize();i++){
+		for(int j=0;j<10;j++){
+			p[j]=ptr[i][j];
+		}
+		Temp*temp=new Temp(p);
+		nList.traverse(&find_astray_ninja,temp,flag);
+		if(flag==1){
+			char* lost=new char();
+			strcpy(lost,p);
+			lost_list.push_back(lost);
+			flag=0;
+		}
+		temp->count=0;
+		(temp->list).clean();
+	}
+	if(lost_list.getSize()==0){
+		cout<<"-1"<<endl;
+	}
+	else{
+		lost_list.traverse(&print_ninja_astray);
+		cout<<endl;
+	}
+}
+
    bool processEvent(ninjaEvent_t& event, L1List<NinjaInfo_t>& nList) {
    	cout<<event.code<<":";
    	if(event.code[0]=='0'){
@@ -476,6 +676,12 @@ void Event12(L1List<NinjaInfo_t>&nList){
 	}
 	else if(event.code[0]=='1'&&event.code[1]=='2'){
 		Event12(nList);
+	}
+	else if(event.code[0]=='1'&&event.code[1]=='3'){
+		Event13(nList,event);
+	}
+	else if(event.code[0]=='1'&&event.code[1]=='4'){
+		Event14(nList);
 	}
     /// NOTE: The output of the event will be printed on one line
     /// end by the endline character.
