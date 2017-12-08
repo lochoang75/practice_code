@@ -100,6 +100,30 @@ public:
             }
         }
     }
+    void    replaceAll(void (*op)(T&, void*,bool&), void* pParam,bool &flag) {
+        L1Item<T>   *p = _pHead;
+        L1Item<T>   *ptr=new L1Item<T>();
+        ptr->pNext=_pHead;
+        while (p) {
+                op(p->data, pParam,flag);
+                if(flag==1){
+                  if(p==_pHead){
+                    _pHead=p->pNext;
+                  }
+                  L1Item<T>*temp=p;
+                  p=p->pNext;
+                  ptr->pNext=p;
+                  delete temp;
+                  _size--;
+                  temp=NULL;
+                  flag=0;
+                }
+                else{
+                  p=p->pNext;
+                  ptr=ptr->pNext;
+                }
+              }
+        }
 };
 
 /// Insert item to the end of the list
@@ -211,7 +235,7 @@ bool L1List<T>::find(T &data,int&index){
             return 1;
         }
         i++;
-        temp=temp->pNext;        
+        temp=temp->pNext;
     }
     return 0;
 }
@@ -237,6 +261,9 @@ T& L1List<T>::operator[](int i){
 ///Reverse the list
 template<class T>
 void L1List<T>::reverse() {
+  if(_pHead==NULL){
+    return;
+  }
 	L1Item<T>*pLoc = _pHead->pNext;
 	L1Item<T>*R_head = new L1Item<T>();
 	L1Item<T>*pPre = _pHead;

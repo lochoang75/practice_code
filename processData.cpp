@@ -51,32 +51,47 @@ struct Temp{
 		sString = NULL;
     }
 };
+bool initBusGlobalData(void** pGData) {
+	  /// TODO: You should define this function if you would like to use some extra data
+	   /// the data should be allocated and pass the address into pGData
+	return true;
+}
+
+void releaseBusGlobalData(void* pGData) {
+}
 //------------------------------------------------------------------
 //------------------------------------------------------------------
 //Event 0: Print all envent code in event list
 //Void function
-void print_event(ninjaEvent_t&data){
-    cout<<data.code<<" ";
-}
-void Event0(){
-    L1List<ninjaEvent_t> Event;
-    loadEvents("events.txt",Event);
-    Event.traverse(&print_event);
-    cout<<"\n";
-}
 //-----------------------------------------------------------------
 //------------------------------------------------------------------
 //Event 1:Print out first ninja in list
 //void function
-void Event1(L1List<NinjaInfo_t>&nList){
+void Event1(L1List<NinjaInfo_t>&nList,Temp&ptr){
+  if(nList.getSize()==0){
+    cout<<"empty";
+  }
+  else if(ptr.sString[0][0]!='\0'){
+    cout<<ptr.sString[0];
+  }
+  else{
     cout<<nList.at(0).id;
-    cout<<"\n";
+  }
+    cout<<endl;
 }
 //-------------------------------------------------------------------
 //-------------------------------------------------------------------
-void Event2(L1List<NinjaInfo_t>&nList){
+void Event2(L1List<NinjaInfo_t>&nList,Temp&ptr){
+  if(nList.getSize()==0){
+    cout<<"empty";
+  }
+  else if(ptr.sString[1][0]!='\0'){
+    cout<<ptr.sString[1];
+  }
+    else{
     cout<<nList.at(nList.getSize()-1).id;
-    cout<<"\n";
+  }
+    cout<<endl;
 }
 //--------------------------------------------------------------------
 //--------------------------------------------------------------------
@@ -120,10 +135,14 @@ void Event4(L1List<NinjaInfo_t>&nList){
 	if(IDList.getSize()==0){
 		nList.traverse(&create_id_list);
 	}
+  if(IDList.getSize()==0){
+    cout<<"empty"<<endl;
+    return;
+  }
 	Temp*ptr=new Temp(IDList.at(0));
 	bool flag=0;
 	IDList.traverse(&find_max,ptr,flag);
-	cout<<ptr->id<<endl;
+	   cout<<ptr->id<<endl;
 }
 
 //--------------------------------------------------------------------
@@ -136,18 +155,26 @@ void find_first_move(NinjaInfo_t&data,void*ptr,bool &flag){
 		if(!p->check){//first time receive location
 			p->lat=data.latitude;
 			p->lon=data.longitude;
+			p->time = data.timestamp;
 			p->check=1;
 		}
 		else{// all other times
-			p->distance=distanceEarth(p->lat,p->lon,data.latitude,data.longitude)*1000;
-			if(p->distance>5){//if move
-				//p->time=data.timestamp;
-				p->time = data.timestamp;
-				flag=1;
-			}
-			else{ //if not move
-				p->lat=data.latitude;
-				p->lon=data.longitude;
+      if(p->count==0){
+			   p->distance=distanceEarth(p->lat,p->lon,data.latitude,data.longitude)*1000;
+			      if(p->distance>5){//if move
+				          //p->time=data.timestamp;
+				              flag=1;
+			        }
+            else{
+                p->count++;
+              }
+            }
+			else{ //after seccond time
+        p->distance=distanceEarth(p->lat,p->lon,data.latitude,data.longitude)*1000;
+           if(p->distance>5){//if move
+                 p->time=data.timestamp;
+                 flag=1;
+             }
 			}
 		}
 	}
@@ -155,10 +182,20 @@ void find_first_move(NinjaInfo_t&data,void*ptr,bool &flag){
 void Event5(L1List<NinjaInfo_t>&nList,ninjaEvent_t&event){
 	bool flag=0;
 	Temp*ptr=new Temp(event.code+1);
+  ptr->count=0;
+  ptr->check=0;
 	nList.traverse(&find_first_move,ptr,flag);
-	if(flag==0){
+  if(ptr->check==0){
 		cout<<"-1"<<endl;
 	}
+  else if(ptr->count==0){
+    char*time=new char();
+		strPrintTime(time,ptr->time);
+		cout<<time<<endl;
+  }
+  else if(flag==0){
+    cout<<"empty"<<endl;
+  }
 	else{
 		char*time=new char();
 		strPrintTime(time,ptr->time);
@@ -201,9 +238,12 @@ void Event6(L1List<NinjaInfo_t> &nList,ninjaEvent_t&event){
 	ptr->count = 0;
 	bool flag=0;
 	nList.traverse(&find_last_stop,ptr,flag);
-	if(ptr->sumTime==0){
+	if(ptr->check==0){
 		cout<<"-1"<<endl;
 	}
+  else if(ptr->sumTime==0){
+    cout<<"Non-stop"<<endl;
+  }
 	else{
 		char *time=new char();
 		strPrintTime(time,ptr->sumTime);
@@ -245,9 +285,9 @@ void Event7(L1List<NinjaInfo_t> &nList,ninjaEvent_t &event){
 	bool flag=0;
   ptr->count_2=0;
 	nList.traverse(&count_stop,ptr,flag);
-	if(ptr->count==0){
-		cout<<"-1"<<endl;
-	}
+  if(ptr->check==0){
+    cout<<"-1"<<endl;
+  }
 	else{
 		cout<<ptr->count<<endl;
 	}
@@ -273,9 +313,9 @@ void Event8(L1List<NinjaInfo_t>&nList,ninjaEvent_t&event){
 	Temp*ptr= new Temp(event.code+1);
 	bool flag=0;
 	nList.traverse(&distance,ptr,flag);
-	if(ptr->distance==0){
-		cout<<"-1"<<endl;
-	}
+  if(ptr->check==0){
+    cout<<"-1"<<endl;
+  }
 	else{
 		cout<<ptr->distance<<endl;
 	}
@@ -304,6 +344,7 @@ void find_max_dist(NinjaInfo_t &data,void*ptr,bool&flag){
 		temp->distance+=distance;
 		temp->lon=data.longitude;
 		temp->lat=data.latitude;
+    temp->count_2++;
 		}
 	}
 }
@@ -316,7 +357,12 @@ void Event9(L1List<NinjaInfo_t>&nList){
 	bool flag=0;
 	IDList.traverse(&add2array,ptr,flag);
 	double max_dist=0;
-	char*max_id=new char();
+  char*max_id=new char[20];//getid from array
+  max_id[0]='0';
+  max_id[1]='0';
+  max_id[2]='0';
+  max_id[3]='0';
+  max_id[4]='\0';
 	for(int i=0;i<IDList.getSize();i++){
 		char*arr=new char();
 		for (int j = 0; j < 10; ++j)
@@ -329,10 +375,16 @@ void Event9(L1List<NinjaInfo_t>&nList){
 			max_dist=ptr->distance;
 			strcpy(max_id,ptr->id);
 		}
+    cout<<ptr->distance<<endl;
 		ptr->distance = 0;
-		
+    ptr->check=0;
 	}
-	cout<<max_id<<endl;
+  if(ptr->count_2==0){
+    cout<<"-1"<<endl;
+  }
+  else{
+	   cout<<max_id<<endl;
+}
 }
 //-------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------
@@ -354,6 +406,7 @@ void find_max_time(NinjaInfo_t &data,void*ptr,bool&flag){
 			temp->time=data.timestamp;
 			temp->lat=data.latitude;
 			temp->lon=data.longitude;
+      temp->count_2++;
 		}
 		else{
 			temp->time=data.timestamp;
@@ -370,7 +423,12 @@ void Event10(L1List<NinjaInfo_t>&nList){
 
 	IDList.traverse(&add2array,ptr,flag);//create array
 	time_t max_time=0;
-	char*max_id=new char();//getid from array
+  char*max_id=new char[20];//getid from array
+  max_id[0]='0';
+  max_id[1]='0';
+  max_id[2]='0';
+  max_id[3]='0';
+  max_id[4]='\0';
 	for(int i=0;i<IDList.getSize();i++){
 		char*arr=new char();
 		for (int j = 0; j < 10; ++j)
@@ -386,7 +444,12 @@ void Event10(L1List<NinjaInfo_t>&nList){
 		ptr->sumTime=0;
 		ptr->check=0;
 	}
-	cout<<max_id<<endl;
+  if(ptr->count_2==0){
+    cout<<"-1"<<endl;
+  }
+  else{
+	   cout<<max_id<<endl;
+   }
 }
 //--------------------------------------------------------------------
 //--------------------------------------------------------------------
@@ -394,9 +457,12 @@ void Event10(L1List<NinjaInfo_t>&nList){
 //Void function
 void find_XYZT(char*&id,void *ptr,bool&flag){
 	Temp*p=(Temp*)ptr;
-	if(strcmp(p->id,id)>0){
-		if(strcmp(p->save_id,id)<0){
-			p->count=1;
+  if(strcmp(p->id,id)>0){
+    if(!p->check){
+      strcpy(p->save_id,id);
+      p->check=1;
+    }
+		else if(strcmp(p->save_id,id)<0){
 			strcpy(p->save_id,id);
 		}
 	}
@@ -413,18 +479,34 @@ void delete_XYZT(NinjaInfo_t&data,void*ptr,bool&flag){
     flag=1;
   }
 }
-void Event11(L1List<NinjaInfo_t>&nList,ninjaEvent_t&event){
+void Event11(L1List<NinjaInfo_t>&nList,ninjaEvent_t&event,Temp&p){
 	if(IDList.getSize()==0){
 		nList.traverse(&create_id_list);
+	}
+  if(IDList.getSize()==0){
+		cout<<"-1"<<endl;
+    return;
 	}
 	char*id=new char();
 	strcpy(id, event.code+2);
 	Temp*ptr=new Temp(id);
 	bool flag=0;
 	IDList.traverse(&find_XYZT,ptr,flag);
+  if(!strcmp(ptr->save_id,nList.at(0).id)){
+    if(p.count==0){
+    p.sString[0]=ptr->save_id;
+    p.count++;
+  }
+  }
+  if(!strcmp(ptr->save_id,nList.at(nList.getSize()-1).id)){
+    if(p.count_2==0){
+    p.count_2++;
+    p.sString[1]=ptr->save_id;
+  }
+  }
   IDList.replaceAll(&kick_XYZT,ptr,flag);
   nList.replaceAll(&delete_XYZT,ptr,flag);
-	if((ptr->count)==0){
+	if((ptr->check)==0){
 		cout<<"-1"<<endl;
 	}
 	else{
@@ -453,6 +535,7 @@ void find_naruto(NinjaInfo_t &data,void*ptr,bool&flag){
 		else{
 			temp->sumTime+=(data.timestamp-temp->time);
 			temp->time=data.timestamp;
+      temp->count_2++;
 		}
 	}
 }
@@ -466,7 +549,12 @@ void Event12(L1List<NinjaInfo_t>&nList){
 
 	IDList.traverse(&add2array,ptr,flag);//create array
 	time_t max_time=0;
-	char*max_id=new char();//getid from array
+	char*max_id=new char[20];//getid from array
+  max_id[0]='0';
+  max_id[1]='0';
+  max_id[2]='0';
+  max_id[3]='0';
+  max_id[4]='\0';
 	for(int i=0;i<IDList.getSize();i++){
 		char*arr=new char();
 		for (int j = 0; j < 10; ++j)
@@ -483,15 +571,28 @@ void Event12(L1List<NinjaInfo_t>&nList){
 		ptr->check=0;
 		ptr->sumTime=0;
 	}
-	cout<<max_id<<endl;
+  if(ptr->count_2==0){
+    cout<<"-1"<<endl;
+  }
+  else{
+	   cout<<max_id<<endl;
+   }
 }
 //-------------------------------------------------------------------------
 //-------------------------------------------------------------------------
 //Event 14:ninja who be astray
 //void function
-void print_ninja_astray(char*&ninja){
+void print_ninja_astray(char*&ninja,void*ptr,bool &flag){
+  Temp*p=(Temp*)ptr;
+  if(p->count<p->count_2-1){
 	cout<<ninja<<" ";
+  p->count++;
 }
+  else{
+  cout<<ninja;
+  }
+}
+
 
 void be_astray(NinjaInfo_t&ninja,void*ptr,bool&flag){
 	Temp*p_local=(Temp*)ptr;
@@ -559,57 +660,76 @@ void Event14(L1List<NinjaInfo_t>&nList){
 		cout<<"-1"<<endl;
 	}
 	else{
-		lost_list.traverse(&print_ninja_astray);
+    ptr->count=0;
+    ptr->count_2=lost_list.getSize();
+    bool flag=0;
+		lost_list.traverse(&print_ninja_astray,ptr,flag);
 		cout<<endl;
 	}
 }
 
-   bool processEvent(ninjaEvent_t& event, L1List<NinjaInfo_t>& nList,void*pGData) {
-   	cout<<event.code<<": ";
-   	if(event.code[0]=='0'){
-      	Event0();
+bool processEvent(ninjaEvent_t& event, L1List<NinjaInfo_t>& nList,void*pGData){
+     static Temp ptr;
+     if(ptr.sString==NULL){
+       ptr.sString=new string[2];
+     }
+  if(event.code[0]=='1'&&event.code[1]=='\0'){
+      cout<<event.code<<": ";
+      	Event1(nList,ptr);
+  }
+  else if(event.code[0]=='2'&&event.code[1]=='\0'){
+      cout<<event.code<<": ";
+       	Event2(nList,ptr);
    }
-   	else if(event.code[0]=='1'&&event.code[1]=='\0'){
-       	Event1(nList);
-   }
-  	else if(event.code[0]=='2'&&event.code[1]=='\0'){
-       	Event2(nList);
-   }
-  	else if(event.code[0]=='3'&&event.code[1]=='\0'){
+  else if(event.code[0]=='3'&&event.code[1]=='\0'){
+      cout<<event.code<<": ";
     	Event3(nList);
 	}
 	else if(event.code[0]=='4'&&event.code[1]=='\0'){
+    cout<<event.code<<": ";
 		Event4(nList);
 	}
-	else if(event.code[0]=='5'){
+	else if(event.code[0]=='5'&&event.code[1]!='\0'){
+    cout<<event.code<<": ";
 		Event5(nList,event);
 	}
-	else if(event.code[0]=='6'){
+	else if(event.code[0]=='6'&&event.code[1]!='\0'){
+    cout<<event.code<<": ";
 		Event6(nList,event);
 	}
-	else if(event.code[0]=='7'){
+	else if(event.code[0]=='7'&&event.code[1]!='\0'){
+    cout<<event.code<<": ";
 		Event7(nList,event);
 	}
-	else if(event.code[0]=='8'){
+	else if(event.code[0]=='8'&&event.code[1]!='\0'){
+    cout<<event.code<<": ";
 		Event8(nList,event);
 	}
 	else if(event.code[0]=='9'&&event.code[1]=='\0'){
+    cout<<event.code<<": ";
 		Event9(nList);
 	}
-	else if(event.code[0]=='1'&&event.code[1]=='0'){
+	else if(event.code[0]=='1'&&event.code[1]=='0'&&event.code[2]=='\0'){
+    cout<<event.code<<": ";
 		Event10(nList);
 	}
-	else if(event.code[0]=='1'&&event.code[1]=='1'){
-		Event11(nList,event);
+	else if(event.code[0]=='1'&&event.code[1]=='1'&&event.code[2]!='\0'){
+    cout<<event.code<<": ";
+		Event11(nList,event,ptr);
 	}
-	else if(event.code[0]=='1'&&event.code[1]=='2'){
+	else if(event.code[0]=='1'&&event.code[1]=='2'&&event.code[2]=='\0'){
+    cout<<event.code<<": ";
 		Event12(nList);
 	}
-	else if(event.code[0]=='1'&&event.code[1]=='4'){
+	else if(event.code[0]=='1'&&event.code[1]=='4'&&event.code[2]=='\0'){
+    cout<<event.code<<": ";
 		Event14(nList);
 	}
+  else if(event.code[0]=='1'&&event.code[1]=='3'&&event.code[2]!='\0'){
+    return true;
+	}
   else{
-	  cout << "is an invalid event" << endl;
+	  cout<<event.code<<" is an invalid event\n";
   }
     /// NOTE: The output of the event will be printed on one line
     /// end by the endline character.

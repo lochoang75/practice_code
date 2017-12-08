@@ -22,6 +22,16 @@
 
 using namespace std;
 
+struct event_dump{
+    L1List<ninjaEvent_t> *list;
+    int count;
+    int count_2;
+    event_dump(){
+      list=new L1List<ninjaEvent_t>();
+      count=0;
+      count_2=0;
+    }
+};
 void    strPrintTime(char* des, time_t& t) {
     tm *pTime = gmtime(&t);
     strftime(des, 26, "%Y-%m-%d %H:%M:%S", pTime);
@@ -29,7 +39,7 @@ void    strPrintTime(char* des, time_t& t) {
 
 void loadNinjaDB(char* fName, L1List<NinjaInfo_t> &db) {
 	ifstream inFile(fName);
-        
+
     if (inFile) {
         string line;
         NinjaInfo_t ninja;
@@ -73,25 +83,39 @@ bool parseNinjaInfo(char* pBuf, NinjaInfo_t& nInfo) {
                         nInfo.id[1]='0';
                         nInfo.id[j - i+2] = '\0';
                     }
-                    else if((j-i)==3){
-                        nInfo.id[2]=nInfo.id[1];
-                        nInfo.id[3]=nInfo.id[2];
+                    else if((j-i)==1){
+                        nInfo.id[2]='0';
+                        nInfo.id[3]=nInfo.id[0];
                         nInfo.id[0]='0';
+                        nInfo.id[1]='0';
+                        nInfo.id[j - i+3] = '\0';
+                    }
+                    else if((j-i)==3){
+                        nInfo.id[3]=nInfo.id[2];
+                        nInfo.id[2]=nInfo.id[1];
                         nInfo.id[1]=nInfo.id[0];
+                        nInfo.id[0]='0';
                         nInfo.id[j - i+1] = '\0';
+                    }
+                    else if((j-i)==0){
+                        nInfo.id[3]='0';
+                        nInfo.id[2]='0';
+                        nInfo.id[1]='0';
+                        nInfo.id[0]='0';
+                        nInfo.id[j - i+4] = '\0';
                     }
                     else{
                         nInfo.id[j - i] = '\0';
                     }
-                    
+
                     break;
                 case 1:
                 {
-                    int hh, mm, ss, dd, mth, yy;
+                    int hh=0, mm=0, ss=0, dd=0, mth=1, yy=1900;
                     strncpy(subStr, pBuf + i, j - i);
                     subStr[j - i] = '\0';
                     struct tm when = {0};
-                    sscanf(subStr, "%d/%d/%d %d:%d:%d", &dd, &mth, & yy, &hh, &mm, &ss);
+                    sscanf(subStr, "%d/%d/%d %d:%d:%d", &mth, &dd, & yy, &hh, &mm, &ss);
                     when.tm_mday = dd;
                     when.tm_mon = mth-1;
                     when.tm_year = yy-1900;
@@ -121,15 +145,51 @@ bool parseNinjaInfo(char* pBuf, NinjaInfo_t& nInfo) {
     }
     return true;
 }
-
+void clone(ninjaEvent_t&data,void*ptr,bool&flag){
+  event_dump*p=(event_dump*)ptr;
+  p->list->push_back(data);
+}
+void print_event(ninjaEvent_t&data, void*ptr,bool&flag){
+  event_dump*p=(event_dump*)ptr;
+  if(p->count<(p->count_2-1)){
+    cout<<data.code<<" ";
+    p->count++;
+  }
+  else{
+    cout<<data.code;
+  }
+}
 
 void process(L1List<ninjaEvent_t>& eventList, L1List<NinjaInfo_t>& bList) {
-    while (!eventList.isEmpty()) {
-        if(!processEvent(eventList[0], bList))
-            cout << eventList[0].code << " is an invalid event\n";
-        eventList.removeHead();
-    }
+	void*pGData = NULL;
+  bool flag=0;
+  event_dump*event=new event_dump();
+  eventList.traverse(&clone,event,flag);
+	initBusGlobalData(&pGData);
+    if(eventList.isEmpty()){
+          return;
+        }
+		while (!eventList.isEmpty()) {
+      if(eventList[0].code[0]=='0'){
+        event->count_2=event->list->getSize();
+        event->count=0;
+        cout<<eventList[0].code<<": ";
+        event->list->traverse(&print_event,event,flag);
+        cout<<endl;
+      }
+      else {
+			     if (!processEvent(eventList[0], bList,pGData))
+				       if (!processEvent(eventList[0], bList, pGData))
+				      cout << eventList[0].code << " is an invalid event\n";
+            }
+    eventList.removeHead();
+  }
+
+	releaseBusGlobalData(pGData);
 }
+
+
+
 
 void printNinjaInfo(NinjaInfo_t& b) {
     printf("%s: (%0.5f, %0.5f), %s\n", b.id, b.longitude, b.latitude, ctime(&b.timestamp));
